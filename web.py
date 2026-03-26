@@ -12,6 +12,7 @@ def index():
     link += "<a href=/welcome?u=盈箏&d=靜宜資管&c=資訊管理導論>GET傳值</a><hr>"
     link += "<a href=/account>POST傳值</a><hr>"
     link += "<a href=/me>關於我</a><hr>"
+    link += "<a href=/jamie>次方與根號計算</a><hr>"
 
     return link
 
@@ -45,6 +46,9 @@ def account():
     else:
         return render_template("account.html")
 
+@app.route("/jamie")
+def jamie():
+    return render_template("jamie.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
