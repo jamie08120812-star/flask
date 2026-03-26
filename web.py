@@ -6,18 +6,18 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
-    homepage = "<h1>黃盈箏Python網頁</h1>"
-    homepage += "<a href=/mis>MIS</a><br>"
-    homepage += "<a href=/today>顯示日期時間</a><br>"
-    homepage += "<a href=/welcome?nick=tcyang>傳送使用者暱稱</a><br>"
-    homepage += "<a href=/account>網頁表單傳值</a><br>"
-    homepage += "<a href=/me>關於我</a><br>"
+    link = "<h1>黃盈箏Python網頁</h1>"
+    link += "<a href=/mis>課程</a><hr>"
+    link += "<a href=/today>顯示日期時間</a><hr>"
+    link += "<a href=/welcome?u=盈箏&d=靜宜資管&c=資訊管理導論>GET傳值</a><hr>"
+    link += "<a href=/account>POST傳值</a><hr>"
+    link += "<a href=/me>關於我</a><hr>"
 
-    return homepage
+    return link
 
 @app.route("/mis")
 def course():
-    return "<h1>資訊管理導論</h1>"
+    return "<h1>資訊管理導論</h1><a href=/>返回首頁</a>"
 
 @app.route("/today")
 def today():
@@ -30,8 +30,10 @@ def me():
 
 @app.route("/welcome", methods=["GET"])
 def welcome():
-    user = request.values.get("nick")
-    return render_template("welcome.html", name=user)
+    u = request.values.get("u")
+    d = request.values.get("d")
+    c = request.values.get("c")
+    return render_template("welcome.html", name = u, dep = d,course = c)
 
 @app.route("/account", methods=["GET", "POST"])
 def account():
