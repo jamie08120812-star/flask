@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黃盈箏 | 個人職能診斷與品牌 Portfolio</title>
+    <!-- 引入 Tailwind CSS 與 Chart.js -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background-color: #020617; 
+            color: #e2e8f0; 
+            scroll-behavior: smooth;
+        }
+
+        /* 導覽列模糊特效 */
+        nav {
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* 背景流動光暈 */
+        .glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            filter: blur(140px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+        .glow-1 { background: #3b82f6; top: -150px; right: -150px; }
+        .glow-2 { background: #a855f7; bottom: -150px; left: -150px; }
+
+        /* 玻璃擬態卡片設計 */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 2rem;
+            transition: transform 0.3s ease;
+        }
+
+        /* 內容區塊動畫 */
+        .page-content {
+            display: none;
+            animation: slideIn 0.5s ease-out forwards;
+        }
+        .page-content.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 頭像裝飾框 */
+        .avatar-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+        }
+        .avatar-frame {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            border-radius: 2rem;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .avatar-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .avatar-bg-glow {
+            position: absolute;
+            inset: -10px;
+            background: linear-gradient(45deg, #3b82f6, #a855f7);
+            filter: blur(20px);
+            opacity: 0.3;
+            z-index: 0;
+            border-radius: 2.5rem;
+        }
+
+        .mono { font-family: 'Fira Code', monospace; }
+
+        .chart-wrapper {
+            position: relative;
+            height: 380px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- 背景光暈 -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <!-- 全域導覽列 -->
+    <nav class="fixed top-0 w-full z-50">
+        <div class="max-w-6xl mx-auto px-6 py-5 flex justify-between items-center">
+            <div class="mono text-sm font-bold tracking-widest">
+                <span class="text-blue-500">HUANG</span>_YZ <span class="text-slate-600">| 411303075</span>
+            </div>
+            <div class="flex space-x-8 text-[11px] font-bold tracking-[0.2em] uppercase">
+                <button onclick="switchTab('home')" class="nav-btn text-white transition hover:text-blue-400" id="btn-home">Home</button>
+                <button onclick="switchTab('test')" class="nav-btn text-slate-400 transition hover:text-blue-400" id="btn-test">測驗結果</button>
+                <button onclick="switchTab('mis')" class="nav-btn text-slate-400 transition hover:text-blue-400" id="btn-mis">MIS工作分析</button>
+                <button onclick="switchTab('jobs')" class="nav-btn text-slate-400 transition hover:text-blue-400" id="btn-jobs">相關工作</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-32 pb-24 max-w-5xl mx-auto px-8">
+
+        <!-- 頁面 1: 首頁 (個人介紹) -->
+        <section id="home" class="page-content active">
+            <div class="flex flex-col md:flex-row items-center gap-16">
+                <div class="avatar-container flex-shrink-0">
+                    <div class="avatar-bg-glow"></div>
+                    <div class="avatar-frame shadow-2xl">
+                        <!-- 【重要：頭像圖片路徑】 -->
+                        <!-- 請將你的頭像圖片命名為 avatar.jpg 並放在與此檔案相同的資料夾內 -->
+                        <img src="avatar.jpg" alt="黃盈箏個人頭像">
+                    </div>
+                </div>
+                <div class="text-center md:text-left">
+                    <p class="mono text-blue-500 text-xs font-bold tracking-[0.4em] mb-4 uppercase">// Personal Identity</p>
+                    <h1 class="text-6xl md:text-8xl font-black text-white mb-6 tracking-tighter">黃盈箏</h1>
+                    <h2 class="text-2xl font-light text-slate-400 mb-8">輔仁大學 資管二B | 411303075</h2>
+                    <p class="text-slate-500 leading-loose max-w-lg text-lg">
+                        一名專注於「事務邏輯」與「視覺想像」整合的資管學生。具備事務型 (C) 的細膩與藝術型 (A) 的想像力。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 頁面 2: 測驗結果 (何倫碼雷達圖) -->
+        <section id="test" class="page-content">
+            <h2 class="text-4xl font-black text-white mb-4">測驗結果分析</h2>
+            <p class="text-blue-500 font-bold mono text-sm mb-12 uppercase tracking-widest">// Holland Code: C x A</p>
+            
+            <div class="grid lg:grid-cols-2 gap-10 items-start">
+                <div class="glass-card p-10 flex flex-col items-center">
+                    <h3 class="text-xs font-bold text-slate-400 tracking-widest uppercase mb-8 self-start">興趣何倫碼雷達圖</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <p class="mt-6 text-xs text-slate-500 italic">※ 數值依據測驗截圖之分佈比例呈現</p>
+                </div>
+
+                <div class="space-y-8">
+                    <div class="glass-card p-10">
+                        <h3 class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-6">核心特質解析</h3>
+                        <p class="text-xl font-bold text-white mb-6 leading-relaxed">
+                            「個性謹慎，認真負責，同時也具有感性和想像力。」
+                        </p>
+                        <ul class="space-y-5 text-slate-400 text-sm leading-relaxed">
+                            <li class="flex items-start gap-3">
+                                <span class="text-blue-500 mt-1">●</span>
+                                <span><b>按部就班：</b> 處理細節有秩序，能有效率地在規範內完成工作。</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="text-purple-500 mt-1">●</span>
+                                <span><b>表達特質：</b> 直覺敏銳，能運用文字、色彩等方法表達自己。</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="text-white mt-1">●</span>
+                                <span><b>多樣性發展：</b> 適合既需要精密邏輯，又需要感性設計的工作環境。</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 頁面 3: MIS 工作分析 -->
+        <section id="mis" class="page-content">
+            <h2 class="text-4xl font-black text-white mb-12">MIS 工作分析 <span class="text-blue-500 text-2xl font-light ml-4">Analysis</span></h2>
+            <div class="glass-card p-10 mb-10">
+                <h3 class="text-xl font-bold text-white mb-6">自傳與適職性</h3>
+                <p class="text-slate-400 leading-loose mb-6">
+                    就讀資管系期間，我發現自己在「事務型」任務中感到自在，這反映在對系統配置與維運流程的執著。我不僅能處理細節，更能透過感性的「藝術型」思維，去理解使用者在操作系統時的真實感受。
+                </p>
+                <p class="text-slate-400 leading-loose">
+                    雖然目前在「網路系統規劃」領域尚待加強，但我相信這只是現階段的知識缺口。透過嚴謹的自我進修與實務操作，我能將「執行力」提升為「規劃力」。
+                </p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass-card p-8 border-l-4 border-l-blue-500">
+                    <h4 class="font-bold text-white mb-2 text-sm uppercase">優勢對接</h4>
+                    <p class="text-slate-500 text-xs">具備中等強度的維運與分析職能，對系統安裝與故障排除極具信心。</p>
+                </div>
+                <div class="glass-card p-8 border-l-4 border-l-purple-500">
+                    <h4 class="font-bold text-white mb-2 text-sm uppercase">未來精進</h4>
+                    <p class="text-slate-500 text-xs">目標在一年內掌握網路拓樸設計與資安防護策略，補足規劃能力的不足。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 頁面 4: 相關工作介紹 -->
+        <section id="jobs" class="page-content">
+            <h2 class="text-4xl font-black text-white mb-12">相關工作推薦 <span class="text-blue-500 text-2xl font-light ml-4">Careers</span></h2>
+            <div class="glass-card overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-white/5 border-b border-white/10">
+                        <tr>
+                            <th class="px-10 py-6 text-xs font-bold text-blue-400 uppercase tracking-widest">目標職位</th>
+                            <th class="px-10 py-6 text-xs font-bold text-blue-400 uppercase tracking-widest">職能與何倫碼關聯</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-slate-400 text-sm">
+                        <tr class="border-b border-white/5 hover:bg-white/5 transition">
+                            <td class="px-10 py-8">
+                                <span class="text-white font-bold block text-lg mb-1">前端工程師 / 網頁設計</span>
+                                <span class="text-xs text-slate-500 mono">Frontend Developer</span>
+                            </td>
+                            <td class="px-10 py-8 leading-relaxed">
+                                對接 <b>A (藝術型)</b> 的美感表達與 <b>C (事務型)</b> 對代碼規範的堅持。
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition">
+                            <td class="px-10 py-8">
+                                <span class="text-white font-bold block text-lg mb-1">資訊系統維運人員</span>
+                                <span class="text-xs text-slate-500 mono">IT System Specialist</span>
+                            </td>
+                            <td class="px-10 py-8 leading-relaxed">
+                                運用 <b>C (事務型)</b> 的謹慎負責進行故障排除與日常維護。
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="py-16 border-t border-white/5 text-center">
+        <p class="mono text-[10px] tracking-[0.3em] text-slate-600 uppercase">
+            Designed for Portfolio // Huang Ying-Zheng // 411303075
+        </p>
+    </footer>
+
+    <script>
+        // 切換頁面邏輯
+        function switchTab(targetId) {
+            // 隱藏所有區塊
+            const pages = document.querySelectorAll('.page-content');
+            pages.forEach(p => p.classList.remove('active'));
+
+            // 顯示目標區塊
+            const targetPage = document.getElementById(targetId);
+            targetPage.classList.add('active');
+
+            // 更新按鈕樣式
+            const buttons = document.querySelectorAll('.nav-btn');
+            buttons.forEach(b => b.classList.replace('text-white', 'text-slate-400'));
+            document.getElementById('btn-' + targetId).classList.replace('text-slate-400', 'text-white');
+
+            // 滾動回頂端
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // 若切換到測驗頁面，啟動圖表動畫
+            if(targetId === 'test') {
+                initRadarChart();
+            }
+        }
+
+        // 初始化 Chart.js 雷達圖
+        let radarChartInstance = null;
+        function initRadarChart() {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            
+            // 若已存在圖表則銷毀重製，確保動畫重新播放
+            if (radarChartInstance) {
+                radarChartInstance.destroy();
+            }
+
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['R 實作型', 'I 研究型', 'A 藝術型', 'S 社會型', 'E 企業型', 'C 事務型'],
+                    datasets: [{
+                        label: 'Holland 興趣指標',
+                        // 數值參考截圖形狀：C 與 A 為頂點
+                        data: [6, 4, 9, 3, 2, 10], 
+                        backgroundColor: 'rgba(59, 130, 246, 0.25)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#a855f7',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#3b82f6',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255,255,255,0.05)' },
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            pointLabels: {
+                                color: '#94a3b8',
+                                font: { size: 14, weight: '700', family: 'Noto Sans TC' }
+                            },
+                            ticks: { display: false, stepSize: 2 },
+                            suggestedMin: 0,
+                            suggestedMax: 10
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // 初次載入
+        window.onload = function() {
+            initRadarChart();
+        };
+    </script>
+
+</body>
+</html>
