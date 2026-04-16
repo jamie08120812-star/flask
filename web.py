@@ -5,18 +5,31 @@ from datetime import datetime
 
 import os
 import json
-import firebase_admin
+import firebase_admin 
 from firebase_admin import credentials, firestore
 
-# 判斷是在 Vercel 還是本地
 if os.path.exists('serviceAccountKey.json'):
-    # 本地環境：讀取檔案
+    # 本地
     cred = credentials.Certificate('serviceAccountKey.json')
 else:
-    # 雲端環境：從環境變數讀取 JSON 字串
+    # 雲端（例如 Vercel）
     firebase_config = os.getenv('FIREBASE_CONFIG')
+
+    if not firebase_config:
+        raise ValueError("FIREBASE_CONFIG 沒有設定")
+
     cred_dict = json.loads(firebase_config)
     cred = credentials.Certificate(cred_dict)
+# 判斷是在 Vercel 還是本地
+#if os.path.exists('serviceAccountKey.json'):
+    # 本地環境：讀取檔案
+    #cred = credentials.Certificate('serviceAccountKey.json')
+#else:
+    # 雲端環境：從環境變數讀取 JSON 字串
+ #   firebase_config = os.getenv('FIREBASE_CONFIG')
+  #  print(firebase_config)
+   # cred_dict = json.loads(firebase_config)
+    #cred = credentials.Certificate(cred_dict)
 
 firebase_admin.initialize_app(cred)
 
@@ -35,7 +48,39 @@ def index():
     link += "<a href=/me>關於我</a><hr>"
     link += "<a href=/jamie>次方與根號計算</a><hr>"
     link += "<br><a href=/read>讀取Firestore資料</a><br>"
+    link += "<br><a href=/read2>讀取姓名資料</a><br>"
+    link += "<br><a href=/spiter>爬取資料</a><br>"
+    
     return link
+
+
+@app.route("/spiter")
+def spiter():
+    import requests
+    from bs4 import BeautifulSoup
+    import urllib3
+
+    # 隱藏 SSL 警告訊息（選配，但建議加上）
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    url = "https://www1.pu.edu.tw/~tcyang/course.html"
+    
+    # 關鍵修改：加入 verify=False 來跳過 SSL 憑證檢查
+    try:
+        Data = requests.get(url, verify=False)
+        Data.encoding = "utf-8"
+        
+        sp = BeautifulSoup(Data.text, "html.parser")
+        items = sp.select(".team-box a")
+
+        info = "" 
+        for i in items:
+            info += i.text + i.get("href") + "<br>"
+        
+        return info
+        
+    except Exception as e:
+        return f"抓取失敗，錯誤原因：{str(e)}"
 
 @app.route("/read")
 def read():
@@ -43,9 +88,42 @@ def read():
     db = firestore.client()
     collection_ref = db.collection("靜宜資管")    
     docs = collection_ref.order_by("lab", direction=firestore.Query.DESCENDING).stream()
-    #docs = collection_ref.get()    
+    docs = collection_ref.get()    
     for doc in docs:         
         Result += str(doc.to_dict()) + "<br>"    
+    return Result
+
+@app.route("/read2", methods=["GET", "POST"])
+def read2():
+    # 網頁標題與查詢表單
+    Result = "<h1>靜宜資管老師查詢</h1>"
+    Result += '<form action="/read2" method="post">'
+    Result += '請輸入老師姓名關鍵字：<input type="text" name="keyword">'
+    Result += '<button type="submit">查詢</button></form><br>'
+
+    if request.method == "POST":
+        keyword = request.form.get("keyword") # 取得使用者輸入的字，例如「楊」
+        Result += f"<h3>查詢結果 (關鍵字: {keyword}):</h3>"
+       
+        db = firestore.client()
+        collection_ref = db.collection("靜宜資管")
+        docs = collection_ref.get()
+       
+        found = False
+        for doc in docs:
+            teacher_data = doc.to_dict()
+            name = teacher_data.get('name')
+           
+            # --- 關鍵修正：判斷關鍵字是否有在姓名裡面 ---
+            if name and keyword in name:
+                found = True
+                lab = teacher_data.get('lab', '未知')
+                Result += f"<span style='color:blue; font-weight:bold'>{name}</span> 老師的研究室是在 <b>{lab}</b><br>"
+       
+        if not found:
+            Result += f"找不到姓名包含「{keyword}」的老師。<br>"
+
+    Result += "<br><a href=/>返回首頁</a>"
     return Result
 
 
