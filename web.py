@@ -1,11 +1,12 @@
 from flask import Flask, render_template, request
 from datetime import datetime 
+
 import os
 import json
 import firebase_admin 
 from firebase_admin import credentials, firestore
-import requests  # 移到最上方
-from bs4 import BeautifulSoup # 移到最上方
+import requests  
+from bs4 import BeautifulSoup 
 import urllib3
 
 # 隱藏 SSL 警告訊息
@@ -13,10 +14,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Firebase 初始化
 if os.path.exists('serviceAccountKey.json'):
-    # 本地環境
     cred = credentials.Certificate('serviceAccountKey.json')
 else:
-    # 雲端環境（例如 Vercel）
     firebase_config = os.getenv('FIREBASE_CONFIG')
     if not firebase_config:
         raise ValueError("FIREBASE_CONFIG 沒有設定")
@@ -39,24 +38,57 @@ def index():
     link += "<a href=/jamie>次方與根號計算</a><hr>"
     link += "<br><a href=/read>讀取Firestore資料</a><br>"
     link += "<br><a href=/read2>讀取姓名資料</a><br>"
-    link += "<br><a href=/spiter>爬取資料</a><br>"
-    link += "<br><a href=/movie1>爬取即將上映電影</a><br>"
+    link += "<br><a href=/spider>爬取資料</a><br>"
+    link += "<br><a href=/movie1>搜尋即將上映電影</a><br>"
+    link += "<br><a href=/spitermo>爬取即將上映電影</a><br>"
+    link += "<br><a href=/searchQ>查詢電影 (Firestore)</a><br>" 
+
     return link
+
+@app.route("/spitermo")
+def spitermo():
+    R = ""
+    db = firestore.client()
+    url = "http://www.atmovies.com.tw/movie/next/"
+    Data = requests.get(url)
+    Data.encoding = "utf-8"
+    sp = BeautifulSoup(Data.text, "html.parser")
+    lastUpdate = sp.find(class_="smaller09").text.replace("更新時間:","")
+    result=sp.select(".filmListAllX li")
+    total = 0
+    for item in result:
+      total += 1
+      movie_id = item.find("a").get("href").replace("/movie/","").replace("/","")
+      title = item.find(class_="filmtitle").text
+      picture = "http://www.atmovies.com.tw" + item.find("img").get("src")
+      hyperlink = "http://www.atmovies.com.tw" + item.find("a").get("href")
+      showDate = item.find(class_="runtime").text[5:15]
+
+      doc = {
+          "title": title,
+          "picture": picture,
+          "hyperlink": hyperlink,
+          "showDate": showDate,
+          "lastUpdate": lastUpdate
+      }
+      doc_ref = db.collection("電影2B").document(movie_id)
+      doc_ref.set(doc)
+
+    R += "網站最新更新日期:" + lastUpdate + "<br>" 
+    R += "總共爬取" + str(total) + "部電影到資料庫"
+    return R
 
 @app.route("/movie1")
 def movie1():
     keyword = request.args.get("keyword", "")
-   
-
-    R = """
+    R = f"""
     <form action="/movie1" method="get">
         <label>請輸入電影關鍵字：</label>
-        <input type="text" name="keyword" value="{}">
+        <input type="text" name="keyword" value="{keyword}">
         <button type="submit">搜尋</button>
     </form>
     <hr>
-    """.format(keyword)
-   
+    """
     if keyword:
         R += "您搜尋的關鍵字是：<b>" + keyword + "</b><br><br>"
    
@@ -68,35 +100,13 @@ def movie1():
    
     for item in result:
         title = item.find("img").get("alt")
-       
         if not keyword or keyword in title:
             introduce = "https://www.atmovies.com.tw" + item.find("a").get("href")
             img_url = "https://www.atmovies.com.tw" + item.find("img").get("src")
-           
             R += "<b>" + title + "</b><br>"
             R += '<a href="' + introduce + '" target="_blank">介紹頁超鏈結</a><br>'
             R += '<img src="' + img_url + '" width="200"><br><br>'
-           
     return R
-
-@app.route("/spiter")
-def spiter():
-    url = "https://www1.pu.edu.tw/~tcyang/course.html"
-    try:
-        # verify=False 跳過 SSL 檢查
-        Data = requests.get(url, verify=False)
-        Data.encoding = "utf-8"
-        
-        sp = BeautifulSoup(Data.text, "html.parser")
-        items = sp.select(".team-box a")
-
-        info = "<h3>課程資料：</h3>" 
-        for i in items:
-            info += i.text + " ( " + i.get("href") + " )<br>"
-        
-        return info
-    except Exception as e:
-        return f"抓取失敗，錯誤原因：{str(e)}"
 
 @app.route("/read")
 def read():
@@ -117,12 +127,9 @@ def read2():
 
     if request.method == "POST":
         keyword = request.form.get("keyword")
-        Result += f"<h3>查詢結果 (關鍵字: {keyword}):</h3>"
-        
         db = firestore.client()
         collection_ref = db.collection("靜宜資管")
         docs = collection_ref.get()
-        
         found = False
         for doc in docs:
             teacher_data = doc.to_dict()
@@ -131,10 +138,8 @@ def read2():
                 found = True
                 lab = teacher_data.get('lab', '未知')
                 Result += f"<span style='color:blue; font-weight:bold'>{name}</span> 老師的研究室是在 <b>{lab}</b><br>"
-        
         if not found:
             Result += f"找不到姓名包含「{keyword}」的老師。<br>"
-
     Result += "<br><a href=/>返回首頁</a>"
     return Result
 
@@ -163,14 +168,41 @@ def account():
     if request.method == "POST":
         user = request.form["user"]
         pwd = request.form["pwd"]
-        result = "您輸入的帳號是：" + user + "; 密碼為：" + pwd 
-        return result
+        return "您輸入的帳號是：" + user + "; 密碼為：" + pwd 
     else:
         return render_template("account.html")
 
 @app.route("/jamie")
 def jamie():
     return render_template("jamie.html")
+
+@app.route("/searchQ", methods=["POST", "GET"])
+def searchQ():
+    if request.method == "POST":
+        MovieTitle = request.form["MovieTitle"]
+        info = ""
+        db = firestore.client()
+        collection_ref = db.collection("電影2B")
+        docs = collection_ref.order_by("showDate").get()
+        for doc in docs:
+            movie_data = doc.to_dict()
+            if MovieTitle in movie_data.get("title", ""):
+                info += "片名：" + movie_data.get("title", "") + "<br>"
+                
+                # 圖片顯示
+                picture_url = movie_data.get("picture", "")
+                if picture_url:
+                    info += f"<img src='{picture_url}' width='150'><br>"
+                
+                # 修改為可點擊的超連結
+                hyperlink = movie_data.get("hyperlink", "")
+                info += f"影片介紹：<a href='{hyperlink}' target='_blank'>介紹頁超連結</a><br>"
+                
+                info += "片長：" + str(movie_data.get("showLength", "未提供")) + " 分鐘<br>"
+                info += "上映日期：" + movie_data.get("showDate", "") + "<br><hr>"
+        return info
+    else:
+        return render_template("input.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
