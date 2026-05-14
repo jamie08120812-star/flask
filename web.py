@@ -55,9 +55,13 @@ def webhook():
     # build a request object
     req = request.get_json(force=True)
     # fetch queryResult from json
-    action =  req.get("queryResult").get("action")
-    msg =  req.get("queryResult").get("queryText")
-    info = "我是黃營箏的機器人動作：" + action + "； 查詢內容：" + msg
+    action =  req["queryResult"]["action"]
+    #msg =  req.get("queryResult").get("queryText")
+    #info = "我是黃營箏的機器人動作：" + action + "； 查詢內容：" + msg
+    if (action == "rateChoice"):
+        rate =  req["queryResult"]["parameters"]["rate"]
+        info = "我是黃營箏的機器人，您選擇的電影分級是：" + rate
+
     return make_response(jsonify({"fulfillmentText": info}))
 
 
