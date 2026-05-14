@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, make_response, jsonify
+from flask import Flask, render_template, request,make_response, jsonify
 from datetime import datetime 
 
 import os
@@ -52,35 +52,27 @@ def index():
 
 @app.route("/webhook", methods=["POST"])
 def webhook3():
-    # 取得 Dialogflow 傳來的 JSON
+    # build a request object
     req = request.get_json(force=True)
-    
-    # 取得 Action 名稱
-    action = req["queryResult"]["action"]
-    
-    if action == "rateChoice":
-        # 取得使用者選擇的分級參數
-        rate = req["queryResult"]["parameters"]["rate"]
-        
-        # 建立 Firestore 客戶端
-        db = firestore.client()
-        # 查詢集合「本週新片含分級」中符合該分級的電影
-        docs = db.collection("本週新片含分級").where("rate", "==", rate).get()
-        
-        movie_titles = []
-        for doc in docs:
-            movie_titles.append(doc.to_dict().get("title"))
-        
-        if movie_titles:
-            # 將電影清單串接成字串
-            info = f"我是黃盈箏開發的電影聊天機器人，您選擇的電影分級是：{rate}。相關電影有：\n" + "、".join(movie_titles)
-        else:
-            info = f"抱歉，目前在資料庫中找不到分級為【{rate}】的電影。"
+    # fetch queryResult from json
+    action =  req["queryResult"]["action"]
+    #msg =  req.get("queryResult").get("queryText")
+    #info = "動作：" + action + "； 查詢內容：" + msg
+    if (action == "rateChoice"):
+        rate =  req["queryResult"]["parameters"]["rate"]
+        info = "我是黃營箏開發的電影聊天機器人,您選擇的電影分級是：" + rate + "，相關電影：\n"
+    db = firestore.client()
+    collection_ref = db.collection("電影含分級")
+    docs = collection_ref.get()
+    result = ""
+    for doc in docs:
+        dict = doc.to_dict()
+        if rate in dict["rate"]:
+            result += "片名：" + dict["title"] + "\n"
+            result += "介紹：" + dict["hyperlink"] + "\n\n"
+    info += result
+    return make_response(jsonify({"fulfillmentText": info}))
 
-        # 回傳 Dialogflow 格式的 JSON
-        return jsonify({"fulfillmentText": info})
-
-    return jsonify({"fulfillmentText": "Webhook 已收到請求，但無法辨識動作。"})
 
 
 @app.route("/rate")
@@ -90,13 +82,11 @@ def rate():
     Data = requests.get(url)
     Data.encoding = "utf-8"
     sp = BeautifulSoup(Data.text, "html.parser")
-    # 修正：部分頁面標籤結構可能不同，加上 try-except 或檢查
-    try:
-        lastUpdate = sp.find(class_="smaller09").text[5:]
-    except:
-        lastUpdate = "未知"
+    lastUpdate = sp.find(class_="smaller09").text[5:]
+    print(lastUpdate)
+    print()
 
-    result = sp.select(".filmList")
+    result=sp.select(".filmList")
 
     for x in result:
         title = x.find("a").text
@@ -107,19 +97,19 @@ def rate():
         picture = "https://www.atmovies.com.tw/photo101/" + movie_id + "/pm_" + movie_id + ".jpg"
 
         r = x.find(class_="runtime").find("img")
-        rate_str = ""
+        rate = ""
         if r != None:
             rr = r.get("src").replace("/images/cer_", "").replace(".gif", "")
             if rr == "G":
-                rate_str = "普遍級"
+                rate = "普遍級"
             elif rr == "P":
-                rate_str = "保護級"
+                rate = "保護級"
             elif rr == "F2":
-                rate_str = "輔12級"
+                rate = "輔12級"
             elif rr == "F5":
-                rate_str = "輔15級"
+                rate = "輔15級"
             else:
-                rate_str = "限制級"
+                rate = "限制級"
 
         t = x.find(class_="runtime").text
 
@@ -137,8 +127,8 @@ def rate():
             "picture": picture,
             "hyperlink": hyperlink,
             "showDate": showDate,
-            "showLength": int(showLength) if showLength.isdigit() else 0,
-            "rate": rate_str,
+            "showLength": int(showLength),
+            "rate": rate,
             "lastUpdate": lastUpdate
         }
 
@@ -298,6 +288,6 @@ def searchQ():
         return info
     return render_template("input.html")
 
-# --- 啟動伺服器 ---
+# --- 啟動伺服器 (務必放在檔案最末端) ---
 if __name__ == "__main__":
     app.run(debug=True)
