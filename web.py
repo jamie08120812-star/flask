@@ -46,8 +46,7 @@ def index():
     link += "<br><a href=/searchQ>查詢電影 (Firestore)</a><br>" 
     link += "<br><a href=/road>台中市十大肇事路口</a><br>" 
     link += "<br><a href=/weather>天氣</a><br>" 
-    link += "<br><a href=/rate>爬取開眼電影資訊 </a><br>" 
-    link += "<br><a href=/webhook>POST </a><br>" 
+    link += "<br><a href=/rate>爬取開眼電影資訊 </a><br>"  
     return link
 
 
