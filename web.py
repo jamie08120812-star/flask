@@ -46,8 +46,16 @@ def index():
     link += "<br><a href=/searchQ>查詢電影 (Firestore)</a><br>" 
     link += "<br><a href=/road>台中市十大肇事路口</a><br>" 
     link += "<br><a href=/weather>天氣</a><br>" 
-    link += "<br><a href=/rate>爬取開眼電影資訊 </a><br>"  
+    link += "<br><a href=/rate>爬取開眼電影資訊 </a><br>" 
+    link += "<br><a href=/webdemo>聊天機器人 </a><br>" 
     return link
+
+
+
+@app.route("/webdemo")
+def webdemo():
+    return render_template("webdemo.html")
+
 
 
 @app.route("/webhook", methods=["POST"])
