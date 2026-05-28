@@ -53,7 +53,7 @@ def index():
     link += "<a href=/road>台中市十大肇事路口</a><hr>" 
     link += "<a href=/weather>天氣</a><hr>" 
     link += "<a href=/rate>爬取開眼電影資訊 </a><hr>" 
-    link += "<a href=/webdemo>聊天機器人 </a><hr>" 
+    link += "<a href=/webhook>聊天機器人 </a><hr>" 
     link += "<a href=/AI>API </a><hr>" 
     link += "<a href=/ask>ask </a><hr>"
     return link
@@ -92,76 +92,64 @@ def AI():
     return response.text
 
 
-@app.route("/webdemo")
-def webdemo():
-    return render_template("webdemo.html")
-
 
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    # build a request object
+    # 取得 Dialogflow 的請求資料
     req = request.get_json(force=True)
-    # fetch queryResult from json
     action = req["queryResult"]["action"]
+    user_query = req["queryResult"]["queryText"]
     
-    # 初始化 info 變數
+    # 初始化要回傳的訊息
     info = ""
     
-    # --- 您要求的紅框部分 ---
-    if (action == "input.unknown"):
-        info = req["queryResult"]["queryText"]
-    # ------------------------
+    # --- 根據作業要求修改的部分 ---
+    if action == "input.unknown":
+        # 設定系統指令，要求 Gemini 包含您的姓名並回答問題
+        instruction_text = (
+            "你是一個熱心且專業的智慧助理，你的開發者是黃盈箏。"
+            "當使用者提問時，請用親切的口吻回答，並在回答中提到你是黃盈箏開發的助手。"
+            "對於使用者的提問，請回覆重點，不要重述問題。"
+        )
+
+        ai_config = types.GenerateContentConfig(
+            max_output_tokens=500, 
+            system_instruction=instruction_text
+        )
+        
+        try:
+            # 呼叫 Gemini AI
+            response = client.models.generate_content(
+                model='gemini-3.5-flash', 
+                contents=user_query,
+                config=ai_config,
+            )
+            info = response.text
+        except Exception as e:
+            info = "抱歉，目前無法連接到 AI 服務，請稍後再試。"
+    # ----------------------------
     
-    elif (action == "rateChoice"):
+    elif action == "rateChoice":
+        # ... (您原本的 rateChoice 邏輯保持不變) ...
         rate = req["queryResult"]["parameters"]["rate"]
-        info = "我是黃營箏開發的電影聊天機器人,您選擇的電影分級是：" + rate + "，相關電影：\n"
+        info = "我是黃盈箏開發的電影聊天機器人,您選擇的電影分級是：" + rate + "，相關電影：\n"
         db = firestore.client()
-        # 注意：這裡要改成你截圖中真實的集合名稱
         collection_ref = db.collection("本週新片含分級")
         docs = collection_ref.get()
        
         result = ""
-        # 2. 迴圈讀取每一筆電影資料
         for doc in docs:
             doc_dict = doc.to_dict()
-           
-            # 先確認字典裡有 'rate' 這個鍵，避免發生 KeyError 報錯
-            # 再檢查使用者要找的分級 (rate) 有沒有包含在資料庫的 'rate' 欄位裡
             if "rate" in doc_dict and rate in doc_dict["rate"]:
                 result += "片名：" + doc_dict["title"] + "\n"
                 result += "介紹：" + doc_dict["hyperlink"] + "\n\n"
        
-        # 3. 判斷是否有找到資料
         if result == "":
             info += "抱歉，目前資料庫中沒有找到這個分級的電影喔！"
         else:
             info += result
 
-
-    instruction_text = (
-        "你是一個熱心且知識豐富的專業智慧助理。"
-        "對於使用者的提問，請回覆重點的關鍵字，不要重述問題。"         
-    )
-
-
-    ai_config = types.GenerateContentConfig(
-        max_output_tokens=500, 
-        system_instruction=instruction_text
-    )
-    response = client.models.generate_content(
-            model='gemini-3.5-flash', 
-            contents=req["queryResult"]["queryText"],
-            config=ai_config,
-        )
-
-        if response.text:
-            info = response.text
-        else:
-            info = "抱歉，我現在無法生成回應，請稍後再試。"
-
-
-            
     return make_response(jsonify({"fulfillmentText": info}))
 
 
