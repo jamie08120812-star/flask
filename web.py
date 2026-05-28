@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request,make_response, jsonify
 from datetime import datetime 
 from google import genai
+from google.genai import types
 
 import os
 import json
@@ -58,6 +59,7 @@ def index():
     return link
 
 
+
 @app.route('/ask', methods=['GET', 'POST']) 
 def ask():
     if request.method == "POST":
@@ -97,37 +99,69 @@ def webdemo():
 
 
 @app.route("/webhook", methods=["POST"])
-def webhook3():
+def webhook():
     # build a request object
     req = request.get_json(force=True)
     # fetch queryResult from json
-    action =  req["queryResult"]["action"]
-    #msg =  req.get("queryResult").get("queryText")
-    #info = "動作：" + action + "； 查詢內容：" + msg
-    if (action == "rateChoice"):
-        rate =  req["queryResult"]["parameters"]["rate"]
+    action = req["queryResult"]["action"]
+    
+    # 初始化 info 變數
+    info = ""
+    
+    # --- 您要求的紅框部分 ---
+    if (action == "input.unknown"):
+        info = req["queryResult"]["queryText"]
+    # ------------------------
+    
+    elif (action == "rateChoice"):
+        rate = req["queryResult"]["parameters"]["rate"]
         info = "我是黃營箏開發的電影聊天機器人,您選擇的電影分級是：" + rate + "，相關電影：\n"
-    db = firestore.client()
+        db = firestore.client()
         # 注意：這裡要改成你截圖中真實的集合名稱
-    collection_ref = db.collection("本週新片含分級")
-    docs = collection_ref.get()
+        collection_ref = db.collection("本週新片含分級")
+        docs = collection_ref.get()
        
-    result = ""
+        result = ""
         # 2. 迴圈讀取每一筆電影資料
-    for doc in docs:
-        doc_dict = doc.to_dict()
+        for doc in docs:
+            doc_dict = doc.to_dict()
            
             # 先確認字典裡有 'rate' 這個鍵，避免發生 KeyError 報錯
             # 再檢查使用者要找的分級 (rate) 有沒有包含在資料庫的 'rate' 欄位裡
-        if "rate" in doc_dict and rate in doc_dict["rate"]:
-            result += "片名：" + doc_dict["title"] + "\n"
-            result += "介紹：" + doc_dict["hyperlink"] + "\n\n"
+            if "rate" in doc_dict and rate in doc_dict["rate"]:
+                result += "片名：" + doc_dict["title"] + "\n"
+                result += "介紹：" + doc_dict["hyperlink"] + "\n\n"
        
         # 3. 判斷是否有找到資料
-    if result == "":
-        info += "抱歉，目前資料庫中沒有找到這個分級的電影喔！"
-    else:
-        info += result
+        if result == "":
+            info += "抱歉，目前資料庫中沒有找到這個分級的電影喔！"
+        else:
+            info += result
+
+
+    instruction_text = (
+        "你是一個熱心且知識豐富的專業智慧助理。"
+        "對於使用者的提問，請回覆重點的關鍵字，不要重述問題。"         
+    )
+
+
+    ai_config = types.GenerateContentConfig(
+        max_output_tokens=500, 
+        system_instruction=instruction_text
+    )
+    response = client.models.generate_content(
+            model='gemini-3.5-flash', 
+            contents=req["queryResult"]["queryText"],
+            config=ai_config,
+        )
+
+        if response.text:
+            info = response.text
+        else:
+            info = "抱歉，我現在無法生成回應，請稍後再試。"
+
+
+            
     return make_response(jsonify({"fulfillmentText": info}))
 
 
