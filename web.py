@@ -43,18 +43,39 @@ def index():
     link += "<a href=/account>POST傳值</a><hr>"
     link += "<a href=/me>關於我</a><hr>"
     link += "<a href=/jamie>次方與根號計算</a><hr>"
-    link += "<br><a href=/read>讀取Firestore資料</a><br>"
-    link += "<br><a href=/read2>讀取姓名資料</a><br>"
-    link += "<br><a href=/spider>爬取資料</a><br>"
-    link += "<br><a href=/movie1>搜尋即將上映電影</a><br>"
-    link += "<br><a href=/spitermo>爬取即將上映電影</a><br>"
-    link += "<br><a href=/searchQ>查詢電影 (Firestore)</a><br>" 
-    link += "<br><a href=/road>台中市十大肇事路口</a><br>" 
-    link += "<br><a href=/weather>天氣</a><br>" 
-    link += "<br><a href=/rate>爬取開眼電影資訊 </a><br>" 
-    link += "<br><a href=/webdemo>聊天機器人 </a><br>" 
-    link += "<br><a href=/AI>API </a><br>" 
+    link += "<a href=/read>讀取Firestore資料</a><hr>"
+    link += "<a href=/read2>讀取姓名資料</a><hr>"
+    link += "<a href=/spider>爬取資料</a><hr>"
+    link += "<a href=/movie1>搜尋即將上映電影</a><hr>"
+    link += "<a href=/spitermo>爬取即將上映電影</a><hr>"
+    link += "<a href=/searchQ>查詢電影 (Firestore)</a><hr>" 
+    link += "<a href=/road>台中市十大肇事路口</a><hr>" 
+    link += "<a href=/weather>天氣</a><hr>" 
+    link += "<a href=/rate>爬取開眼電影資訊 </a><hr>" 
+    link += "<a href=/webdemo>聊天機器人 </a><hr>" 
+    link += "<a href=/AI>API </a><hr>" 
+    link += "<a href=/ask>ask </a><hr>"
     return link
+
+
+@app.route('/ask', methods=['GET', 'POST']) 
+def ask():
+    if request.method == "POST":
+        user_prompt = request.form.get('prompt', '')
+        if not user_prompt:
+            return "請輸入內容", 400
+        try:
+            response = client.models.generate_content(
+                model='gemini-3.5-flash',
+                contents=user_prompt,
+            )
+            return response.text
+        except Exception as e:
+            return f"發生錯誤: {str(e)}", 500
+
+    else:    
+        # 當使用者直接打開網頁 (GET) 時，顯示輸入框畫面
+        return render_template("ask.html")
 
 
 @app.route("/AI")
